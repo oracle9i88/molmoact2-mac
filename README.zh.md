@@ -43,7 +43,8 @@ LeRobot 設定裡預設是 bfloat16。它在 Mac 顯卡上不報錯、不警告�
 
 **2. 官方的 `config.json` 用 lerobot 0.7.0 載入會報錯。**
 裡面有四個欄位後來改名或刪除了，載入時會停在 `draccus.utils.DecodingError`。`prepare.py` 會修好
-這個檔案並保留原件。
+這個檔案並保留原件。其中 `model_dtype` 是改名為 `dtype`（保留 `float32`），不是刪掉：設定裡沒有
+`dtype` 的話，lerobot 會退回預設的 bfloat16，正好掉進第 1 個坑。
 
 另外：**不需要下載底座模型。** LeRobot 會先載入 `allenai/MolmoAct2-SO100_101`（又一個 21.8 GB），
 再用 LeRobot 權重把每個張量都覆蓋掉。兩份檔案是同樣的 1295 個張量，只差一個 `model.` 名字前綴。

@@ -6,6 +6,7 @@ usage: prepare.py CKPT_DIR BASE_DIR
 1. Fix CKPT_DIR/config.json for lerobot 0.7.0. The published config still carries four
    fields that were renamed/removed (enable_lora_vlm, enable_lora_action_expert,
    train_action_expert_only, model_dtype), so loading fails with a draccus DecodingError.
+   model_dtype is renamed to dtype (keeping float32), not just dropped.
    The original is kept as config.orig.json.
 
 2. Build BASE_DIR/model.safetensors from CKPT_DIR/model.safetensors.
@@ -28,13 +29,23 @@ ckpt, base = sys.argv[1], sys.argv[2]
 cfg_path = os.path.join(ckpt, "config.json")
 cfg = json.load(open(cfg_path))
 stale = ["enable_lora_vlm", "enable_lora_action_expert", "train_action_expert_only", "model_dtype"]
+orig_path = os.path.join(ckpt, "config.orig.json")
 if any(k in cfg for k in stale):
-    shutil.copy(cfg_path, os.path.join(ckpt, "config.orig.json"))
+    shutil.copy(cfg_path, orig_path)
+    # model_dtype was renamed to dtype. Carry the value over: if the field is only deleted,
+    # lerobot falls back to its bfloat16 default, which gives wrong actions on MPS.
+    cfg["dtype"] = cfg.get("model_dtype", "float32")
     for k in stale:
         cfg.pop(k, None)
     cfg["train_mode_vlm"] = "fft"  # no LoRA adapters: the checkpoint stores full weights
     json.dump(cfg, open(cfg_path, "w"), indent=4)
-    print("config.json patched (original saved as config.orig.json)")
+    print(f"config.json patched, dtype={cfg['dtype']} (original saved as config.orig.json)")
+elif "dtype" not in cfg:
+    # patched by an earlier version of this script, which dropped model_dtype without renaming it
+    orig = json.load(open(orig_path)) if os.path.exists(orig_path) else {}
+    cfg["dtype"] = orig.get("model_dtype", "float32")
+    json.dump(cfg, open(cfg_path, "w"), indent=4)
+    print(f"config.json: added missing dtype={cfg['dtype']}")
 else:
     print("config.json already compatible")
 

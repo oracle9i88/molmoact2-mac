@@ -48,7 +48,9 @@ arm this would look like "the model is bad" rather than "the numbers are wrong".
 
 **2. The published `config.json` does not load with lerobot 0.7.0.**
 It carries four fields that have since been renamed or removed, and loading stops with a
-`draccus.utils.DecodingError`. `prepare.py` fixes the file and keeps the original.
+`draccus.utils.DecodingError`. `prepare.py` fixes the file and keeps the original. It renames `model_dtype` to `dtype`
+(keeping `float32`) rather than dropping it: without a `dtype` field lerobot falls back to
+bfloat16, i.e. straight into problem 1.
 
 Also useful: **you do not need to download the base model.** The LeRobot policy first loads
 `allenai/MolmoAct2-SO100_101` (another 21.8 GB) and then overwrites every tensor with the
